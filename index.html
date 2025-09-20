@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en" dir="">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -593,5 +593,133 @@
       integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
       crossorigin="anonymous"
     ></script>
+    <script>
+      (function () {
+        "use strict";
+
+        var rtlLanguageCodes = new Set([
+          "ar",
+          "arc",
+          "dv",
+          "fa",
+          "ha",
+          "he",
+          "khw",
+          "ks",
+          "ku",
+          "pa",
+          "ps",
+          "sd",
+          "ug",
+          "ur",
+          "yi",
+        ]);
+
+        var lastDirection = null;
+        var lastLang = null;
+        var lastGoogtrans = null;
+
+        function getCookie(name) {
+          var match = document.cookie.match(
+            new RegExp(
+              "(?:^|; )" +
+                name.replace(/([.$?*|{}()\[\]\\\/\+^])/g, "\\$1") +
+                "=([^;]*)"
+            )
+          );
+          return match ? decodeURIComponent(match[1]) : null;
+        }
+
+        function getLangFromGoogTransCookie() {
+          var value = getCookie("googtrans");
+          if (!value) return null;
+          var parts = value.split("/");
+          var tgt = parts[parts.length - 1] || "";
+          return tgt.toLowerCase().split("-")[0];
+        }
+
+        function getCurrentLanguage() {
+          var langAttr = (
+            document.documentElement.getAttribute("lang") ||
+            (document.body && document.body.getAttribute("lang")) ||
+            ""
+          ).toLowerCase();
+          if (langAttr) return langAttr.split("-")[0];
+
+          var fromCookie = getLangFromGoogTransCookie();
+          if (fromCookie) return fromCookie;
+
+          var nav = (
+            navigator.language ||
+            (navigator.languages && navigator.languages[0]) ||
+            "en"
+          ).toLowerCase();
+          return nav.split("-")[0];
+        }
+
+        function isRtl(lang) {
+          try {
+            if (typeof Intl !== "undefined" && Intl.Locale) {
+              var info = new Intl.Locale(lang).textInfo;
+              var dir = info && info.direction;
+              if (dir === "rtl" || dir === "ltr") return dir === "rtl";
+            }
+          } catch (e) {}
+          return rtlLanguageCodes.has(lang);
+        }
+
+        function applyDirection() {
+          var lang = getCurrentLanguage();
+          var direction = isRtl(lang) ? "rtl" : "ltr";
+          if (direction !== lastDirection) {
+            document.documentElement.setAttribute("dir", direction);
+            document.documentElement.classList.toggle(
+              "dir-rtl",
+              direction === "rtl"
+            );
+            document.documentElement.classList.toggle(
+              "dir-ltr",
+              direction === "ltr"
+            );
+            lastDirection = direction;
+          }
+          lastLang = lang;
+        }
+
+        var observer = new MutationObserver(function (mutations) {
+          for (var i = 0; i < mutations.length; i++) {
+            var m = mutations[i];
+            if (
+              m.type === "attributes" &&
+              (m.attributeName === "lang" || m.attributeName === "class")
+            ) {
+              applyDirection();
+              break;
+            }
+          }
+        });
+
+        observer.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["lang", "class"],
+        });
+        if (document.body) {
+          observer.observe(document.body, {
+            attributes: true,
+            attributeFilter: ["lang", "class"],
+          });
+        }
+
+        setInterval(function () {
+          var current = getCookie("googtrans");
+          if (current !== lastGoogtrans) {
+            lastGoogtrans = current;
+            applyDirection();
+          }
+        }, 1500);
+
+        applyDirection();
+      })();
+    </script>
   </body>
 </html>

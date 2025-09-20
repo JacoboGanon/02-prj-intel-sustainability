@@ -367,3 +367,7 @@ img {
     margin-bottom: 0;
   }
 }
+
+.ltr {
+  @import "../node_modules/bootstrap/scss/bootstrap";
+}
